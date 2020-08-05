@@ -37,7 +37,7 @@ module RBS
       @stderr = stderr
     end
 
-    COMMANDS = [:ast, :list, :ancestors, :methods, :method, :validate, :constant, :paths, :prototype, :vendor, :parse, :test]
+    COMMANDS = [:ast, :list, :ancestors, :methods, :method, :validate, :constant, :paths, :prototype, :vendor, :parse, :test, :subtract]
 
     def library_parse(opts, options:)
       opts.on("-r LIBRARY", "Load RBS files of the library") do |lib|
@@ -810,6 +810,35 @@ EOB
 
       system(env_hash, *args)
       $?
+    end
+
+    def run_subtract(args, options)
+      OptionParser.new do |opts|
+        opts.banner = <<-EOB
+Usage: rbs subtract [files...]
+
+Subtract definitions in given files from definitions in loaded environment.
+
+Examples:
+
+  $ rbs -I sig subtract sig/app/models.rbs
+        EOB
+      end.parse!(args)
+
+      loader = EnvironmentLoader.new()
+      options.setup(loader)
+
+      env = Environment.from_loader(loader).resolve_type_names
+
+      subtrahends = args.flat_map do |path|
+        Parser.parse_signature(File.read(path))
+      end
+
+      dupfilter = AST::DuplicationFilter.new(env)
+      subtracted = dupfilter.filter(subtrahends)
+
+      writer = Writer.new(out: stdout)
+      writer.write subtracted
     end
   end
 end

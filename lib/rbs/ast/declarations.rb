@@ -339,6 +339,8 @@ module RBS
       end
 
       class Interface < Base
+        include NestedDeclarationHelper
+
         attr_reader :name
         attr_reader :type_params
         attr_reader :members
